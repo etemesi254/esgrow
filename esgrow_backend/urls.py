@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework import serializers, routers, viewsets
 
 from . import views
-from .api import CreateUserView
+from .api import CreateUserView, LoginUserView
 from .models import User, EscrowTransactions
 
 
@@ -25,6 +25,7 @@ router.register(r"transactions", TransactionViewSet)
 urlpatterns = [
     path("v1/", include(router.urls)),
     path("v1/users/register", CreateUserView.as_view(), name="users"),
+    path("v1/users/login", LoginUserView.as_view(), name="login"),
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework_auth'))
 
 ]
