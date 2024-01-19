@@ -124,8 +124,14 @@ REST_FRAMEWORK = {
     # or allow read-only access for unauthenticated users.
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly',
-        'rest_framework.authentication.SessionAuthentication',
-    ]
+        'rest_framework.permissions.IsAuthenticated',
+
+    ],
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+
+    "EXCEPTION_HANDLER": "esgrow_backend.utils.custom_exception_handler"
 }
 
 AUTH_USER_MODEL = "esgrow_backend.User"

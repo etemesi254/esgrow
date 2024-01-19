@@ -3,7 +3,7 @@ from rest_framework import serializers, routers, viewsets
 
 from . import views
 from .models import User, EscrowTransactions
-from .views import LoginUserView, CreateUserView
+from .views import LoginUserView, CreateUserView, EscrowTransactionsView
 
 
 class SerializedTransaction(serializers.HyperlinkedModelSerializer):
@@ -12,19 +12,12 @@ class SerializedTransaction(serializers.HyperlinkedModelSerializer):
         fields = ["transaction_id", "from_user", "to_user", "amount", "stage", "created_date", "modified_date"]
 
 
-# ViewSets define the view behavior.
-class TransactionViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
-    serializer_class = SerializedTransaction
 
 
-router = routers.DefaultRouter()
-router.register(r"transactions", TransactionViewSet)
-# router.register(r"users", CreateUserView, basename="CreateUser")
 
 urlpatterns = [
-    path("v1/", include(router.urls)),
     path("v1/users/register", CreateUserView.as_view(), name="users"),
     path("v1/users/login", LoginUserView.as_view(), name="login"),
+    path("v1/transactions/", EscrowTransactionsView.as_view(), name="transactions"),
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework_auth'))
 ]

@@ -5,8 +5,10 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.generics import CreateAPIView, RetrieveAPIView
 from django.contrib.auth import get_user_model  # If used custom user model
 from rest_framework.response import Response
+from rest_framework.views import APIView, exception_handler
 
 from esgrow_backend.app_serializers import UserSerializer
+from esgrow_backend.models import User, EscrowTransactions
 
 
 class CreateUserView(CreateAPIView):
@@ -77,3 +79,18 @@ class LoginUserView(ObtainAuthToken):
                              "errors": {"exception": [f"${e}"]},
                              "data": {}}
             return Response(response_data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class EscrowTransactionsView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, format=None):
+        user = User.objects.get(username=request.user.username)
+        transactions_from = EscrowTransactions.objects.filter(from_user=user)
+        transactions_to = EscrowTransactions.objects.filter(to_user=user)
+
+        response_data = {"status": status.HTTP_200_OK, "status description": "Ok", "data": {
+            "from_user": transactions_from,
+            "to_user": transactions_to
+        }}
+        return Response(response_data, status=status.HTTP_200_OK)
