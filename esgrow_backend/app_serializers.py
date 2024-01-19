@@ -1,6 +1,7 @@
 from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
 
-from esgrow_backend.models import User
+from esgrow_backend.models import User, EscrowTransactions
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -25,3 +26,36 @@ class UserSerializer(serializers.ModelSerializer):
         response = super().to_representation(instance)
         response.pop("password", None)
         return response
+
+
+class EscrowTransactionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EscrowTransactions
+        fields = ("transaction_id", "stage", "amount", "from_user", "to_user", "created_date", "modified_date")
+        read_only_fields = ("transaction_id", "stage", "created_date", "modified_date")
+
+    def create(self, validated_data):
+        transaction = EscrowTransactions.objects.create(
+            amount=validated_data["amount"],
+            stage="Initiated",
+            from_user=validated_data["from_user"],
+            to_user=validated_data["to_user"]
+        )
+        transaction.save()
+        return transaction
+
+    def to_representation(self, instance):
+        response = super().to_representation(instance)
+
+        return response
+
+
+class EscrowViewTransactionSerializer(serializers.ModelSerializer):
+    from_user = UserSerializer(many=False, read_only=True)
+    to_user = UserSerializer(many=False, read_only=True)
+
+    class Meta:
+        model = EscrowTransactions
+        fields = ("transaction_id", "stage", "amount", "from_user", "to_user", "created_date", "modified_date")
+        read_only_fields = ("transaction_id", "stage", "created_date", "modified_date")
+

@@ -10,6 +10,7 @@ from rest_framework.authtoken.models import Token
 
 # Create your models here.
 class User(AbstractUser):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     email = models.EmailField()
     username = models.CharField(max_length=200, unique=True)
     password = models.CharField(max_length=100)
@@ -31,7 +32,7 @@ class EscrowTransactions(models.Model):
     transaction_id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     from_user = models.ForeignKey(User, on_delete=models.RESTRICT, related_name="+")
     to_user = models.ForeignKey(User, on_delete=models.RESTRICT, related_name="+")
-    amount = models.DecimalField(max_digits=1000, decimal_places=100)
+    amount = models.DecimalField(max_digits=100, decimal_places=2)
     stage = models.CharField(choices=TransactionStage.choices, max_length=200)
     created_date = models.DateTimeField(auto_now_add=True)
     modified_date = models.DateTimeField(auto_now=True)
@@ -48,7 +49,7 @@ class MonetaryTransactions(models.Model):
     user = models.ForeignKey(User, on_delete=models.RESTRICT)
     external_entity = models.CharField(max_length=200)
     external_reference = models.CharField(max_length=200, null=True)
-    amount = models.DecimalField(max_digits=1000, decimal_places=100)
+    amount = models.DecimalField(max_digits=100, decimal_places=2)
     stage = models.CharField(choices=TransactionStage.choices, max_length=200)
     created_date = models.DateTimeField(auto_now_add=True)
     modified_date = models.DateTimeField(auto_now_add=True)

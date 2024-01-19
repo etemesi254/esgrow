@@ -5,9 +5,9 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.generics import CreateAPIView, RetrieveAPIView
 from django.contrib.auth import get_user_model  # If used custom user model
 from rest_framework.response import Response
-from rest_framework.views import APIView, exception_handler
+from rest_framework.views import APIView
 
-from esgrow_backend.app_serializers import UserSerializer
+from esgrow_backend.app_serializers import UserSerializer, EscrowTransactionSerializer, EscrowViewTransactionSerializer
 from esgrow_backend.models import User, EscrowTransactions
 
 
@@ -30,6 +30,7 @@ class CreateUserView(CreateAPIView):
                              "status_description": "CREATED",
                              "errors": {},
                              "data": {'token': token.key,
+                                      "id": serializer.data["id"],
                                       'username': serializer.data["username"],
                                       'email': serializer.data["email"],
                                       'first_name': serializer.data["first_name"],
@@ -57,12 +58,13 @@ class LoginUserView(ObtainAuthToken):
                                            context={'request': request})
         try:
             serializer.is_valid(raise_exception=True)
-            user = serializer.validated_data['user']
+            user: User = serializer.validated_data['user']
             token, created = Token.objects.get_or_create(user=user)
             response_data = {"status": status.HTTP_200_OK,
-                             "status_description": "OK", "erros": {},
+                             "status_description": "OK", "errors": {},
                              "data": {
                                  'token': token.key,
+                                 'id': user.id,
                                  'username': user.username,
                                  "email": user.email,
                                  "first_name": user.first_name,
@@ -84,13 +86,40 @@ class LoginUserView(ObtainAuthToken):
 class EscrowTransactionsView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
+    serializer_class = EscrowViewTransactionSerializer
+
     def get(self, request, format=None):
         user = User.objects.get(username=request.user.username)
-        transactions_from = EscrowTransactions.objects.filter(from_user=user)
-        transactions_to = EscrowTransactions.objects.filter(to_user=user)
+        transactions_from = EscrowTransactions.objects.filter(from_user=user).prefetch_related("from_user")
+        transactions_to = EscrowTransactions.objects.filter(to_user=user).prefetch_related("to_user")
+        transactions_from_serialized = self.serializer_class(transactions_from, many=True)
+        transactions_to_serialized = self.serializer_class(transactions_to, many=True)
 
-        response_data = {"status": status.HTTP_200_OK, "status description": "Ok", "data": {
-            "from_user": transactions_from,
-            "to_user": transactions_to
-        }}
+        response_data = {"status": status.HTTP_200_OK,
+                         "status description": "Ok",
+                         "errors": {},
+                         "data": {
+                             "from_user": transactions_from_serialized.data,
+                             "to_user": transactions_to_serialized.data
+                         }}
         return Response(response_data, status=status.HTTP_200_OK)
+
+
+class EscrowTransactionAddView(CreateAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = EscrowTransactionSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data,
+                                           context={'request': request})
+
+        try:
+            serializer.is_valid(raise_exception=True)
+            self.perform_create(serializer)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        except ValidationError as e:
+            response_data = {"status": status.HTTP_400_BAD_REQUEST, "status_description": "Bad request",
+                             "errors": e.detail,
+                             "data": {}}
+            return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
