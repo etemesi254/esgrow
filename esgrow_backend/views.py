@@ -14,7 +14,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from esgrow_backend.app_serializers import UserSerializer, EscrowTransactionSerializer, EscrowViewTransactionSerializer, \
+from esgrow_backend.app_serializers import EscrowTransactionSerializer, EscrowViewTransactionSerializer, \
     LoggedInUserSerializer
 from esgrow_backend.models import User, EscrowTransactions
 
@@ -97,10 +97,11 @@ class EscrowTransactionsView(APIView):
 
     serializer_class = EscrowViewTransactionSerializer
 
-    def get(self, request, format=None):
+    def get(self, request):
         user = User.objects.get(username=request.user.username)
         transactions_from = EscrowTransactions.objects.filter(from_user=user).prefetch_related("from_user")
         transactions_to = EscrowTransactions.objects.filter(to_user=user).prefetch_related("to_user")
+
         transactions_from_serialized = self.serializer_class(transactions_from, many=True)
         transactions_to_serialized = self.serializer_class(transactions_to, many=True)
 
