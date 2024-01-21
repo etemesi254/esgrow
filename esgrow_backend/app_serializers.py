@@ -30,6 +30,19 @@ class UserSerializer(serializers.ModelSerializer):
         return response
 
 
+class LoggedInUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ("id", "username", "email", "password", "first_name", "last_name", "balance")
+        write_only_fields = ("password",)
+        read_only_fields = ("id", "balance")
+
+    def to_representation(self, instance):
+        response = super().to_representation(instance)
+        response.pop("password", None)
+        return response
+
+
 class EscrowTransactionSerializer(serializers.ModelSerializer):
     class Meta:
         model = EscrowTransactions

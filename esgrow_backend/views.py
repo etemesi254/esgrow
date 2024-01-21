@@ -14,7 +14,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from esgrow_backend.app_serializers import UserSerializer, EscrowTransactionSerializer, EscrowViewTransactionSerializer
+from esgrow_backend.app_serializers import UserSerializer, EscrowTransactionSerializer, EscrowViewTransactionSerializer, \
+    LoggedInUserSerializer
 from esgrow_backend.models import User, EscrowTransactions
 
 
@@ -23,7 +24,7 @@ class CreateUserView(CreateAPIView):
     permission_classes = [
         permissions.AllowAny  # Or anon users can't register
     ]
-    serializer_class = UserSerializer
+    serializer_class = LoggedInUserSerializer
 
     def create(self, request, *args, **kwargs):
         try:
@@ -36,7 +37,7 @@ class CreateUserView(CreateAPIView):
             response_data = {"status": status.HTTP_201_CREATED,
                              "status_description": "CREATED",
                              "errors": {},
-                             "data": {'token': token.key,
+                             "data": {'auth_token': token.key,
                                       "id": serializer.data["id"],
                                       'username': serializer.data["username"],
                                       'email': serializer.data["email"],
@@ -70,12 +71,13 @@ class LoginUserView(ObtainAuthToken):
             response_data = {"status": status.HTTP_200_OK,
                              "status_description": "OK", "errors": {},
                              "data": {
-                                 'token': token.key,
+                                 'auth_token': token.key,
                                  'id': user.id,
                                  'username': user.username,
                                  "email": user.email,
                                  "first_name": user.first_name,
                                  "last_name": user.last_name,
+                                 "balance": user.balance
                              }}
             return Response(response_data, status=status.HTTP_200_OK, )
         except ValidationError as e:

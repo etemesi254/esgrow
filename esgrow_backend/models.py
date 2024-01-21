@@ -24,7 +24,7 @@ class User(AbstractUser):
     password = models.CharField(max_length=100)
     created_date = models.DateTimeField(auto_now_add=True)
     modified_date = models.DateTimeField(auto_now=True)
-    amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
 
 
 class EscrowTransactions(models.Model):
