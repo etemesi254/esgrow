@@ -1,9 +1,16 @@
+import uuid
+import datetime
+
+from django.contrib.auth.decorators import login_required
 from rest_framework import permissions, status
+from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.exceptions import ValidationError
-from rest_framework.generics import CreateAPIView, RetrieveAPIView
+from rest_framework.generics import CreateAPIView, RetrieveAPIView, UpdateAPIView
 from django.contrib.auth import get_user_model  # If used custom user model
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -123,3 +130,43 @@ class EscrowTransactionAddView(CreateAPIView):
                              "errors": e.detail,
                              "data": {}}
             return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def update_transaction(request, transaction_id: uuid.UUID):
+    transaction = EscrowTransactions.objects.get(transaction_id=transaction_id)
+    if transaction is None:
+        response_data = {"status": status.HTTP_404_NOT_FOUND,
+                         "status_description": "NOT FOUND",
+                         "errors": {
+                             "transaction_id": ["Transaction wasn't found"]
+                         },
+                         "data": {}}
+        return Response(response_data, status=status.HTTP_404_NOT_FOUND)
+
+    user: User = request.user
+
+    if user is None:
+        raise ValidationError("User not found")
+    if not request.user.is_authenticated:
+        raise ValidationError("User is not authenticated")
+
+    if user == transaction.from_user:
+        transaction.from_user_confirmed = True
+        transaction.from_user_confirmed_date = datetime.datetime.now()
+        transaction.save()
+    elif user == transaction.to_user:
+        transaction.to_user_confirmed = True
+        transaction.to_user_confirmed_date = datetime.datetime.now()
+        transaction.save()
+    else:
+        raise Exception("User is not of any type for this transaction")
+
+    response_data = {"status": status.HTTP_200_OK,
+                     "status_description": "OK",
+                     "errors": {
+                     },
+                     "data": {}}
+    return Response(response_data, status=status.HTTP_200_OK)

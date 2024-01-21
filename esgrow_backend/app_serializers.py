@@ -1,3 +1,5 @@
+import datetime
+
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
@@ -56,6 +58,6 @@ class EscrowViewTransactionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = EscrowTransactions
-        fields = ("transaction_id", "stage", "amount", "from_user", "to_user", "created_date", "modified_date")
+        fields = ("transaction_id", "stage", "amount", "from_user", "to_user", "created_date", "modified_date",
+                  "from_user_confirmed", "from_user_confirmed_date", "to_user_confirmed", "to_user_confirmed_date")
         read_only_fields = ("transaction_id", "stage", "created_date", "modified_date")
-
