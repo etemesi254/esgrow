@@ -66,7 +66,10 @@ class LoginUserView(ObtainAuthToken):
         serializer = self.serializer_class(data=request.data,
                                            context={'request': request})
         try:
+            print("Hello")
+
             serializer.is_valid(raise_exception=True)
+            print("Hello")
             user: User = serializer.validated_data['user']
             token, created = Token.objects.get_or_create(user=user)
             response_data = {"status": status.HTTP_200_OK,
