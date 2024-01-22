@@ -24,7 +24,7 @@ SECRET_KEY = "django-insecure-)c5p%av01&v*v+7r92z(^)%$)6p4o&syj-sms*!ykn1#q-!#46
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ["api.esgrow.org"]
+ALLOWED_HOSTS = ["api.esgrow.org", "localhost"]
 
 # Application definition
 

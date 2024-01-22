@@ -42,7 +42,8 @@ class CreateUserView(CreateAPIView):
                                       'username': serializer.data["username"],
                                       'email': serializer.data["email"],
                                       'first_name': serializer.data["first_name"],
-                                      'last_name': serializer.data["last_name"]
+                                      'last_name': serializer.data["last_name"],
+                                      'balance': serializer.data["balance"],
                                       }}
 
             return Response(response_data,
