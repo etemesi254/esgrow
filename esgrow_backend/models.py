@@ -87,11 +87,13 @@ class DisputeStage(models.TextChoices):
 class Disputes(models.Model):
     dispute_id = models.UUIDField(primary_key=True, default=uuid.uuid4)
 
-    transaction_id = models.ForeignKey(EscrowTransactions, on_delete=models.RESTRICT,
-                                       related_name="foreign_transaction_id")
+    transaction = models.ForeignKey(EscrowTransactions, on_delete=models.RESTRICT,
+                                    related_name="foreign_transaction_id")
     user_initiated = models.ForeignKey(User, on_delete=models.RESTRICT, related_name="+")
     reason = models.CharField(max_length=300)
     stage = models.CharField(choices=DisputeStage.choices, max_length=200)
+    created_date = models.DateTimeField(auto_now_add=True)
+    modified_date = models.DateTimeField(auto_now=True)
 
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)

@@ -16,8 +16,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from esgrow_backend.app_serializers import EscrowTransactionSerializer, EscrowViewTransactionSerializer, \
-    LoggedInUserSerializer, UserSerializer
-from esgrow_backend.models import User, EscrowTransactions, TransactionStage
+    LoggedInUserSerializer, UserSerializer, DisputeSerializer
+from esgrow_backend.models import User, EscrowTransactions, TransactionStage, Disputes, DisputeStage
 
 
 class CreateUserView(CreateAPIView):
@@ -190,7 +190,7 @@ def confirm_transaction(request, transaction_id: uuid.UUID):
     return Response(response_data, status=status.HTTP_200_OK)
 
 
-@api_view(['POST', 'GET'])
+@api_view(['POST'])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def dispute_transaction(request, transaction_id: uuid.UUID):
@@ -238,7 +238,14 @@ def dispute_transaction(request, transaction_id: uuid.UUID):
                          "data": {}}
         return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
-    serializer = EscrowViewTransactionSerializer(transaction, many=False)
+    dispute = Disputes.objects.create(
+        user_initiated=user,
+        transaction=transaction,
+        reason=request.POST.get("reason", ""),
+        stage=DisputeStage.Pending
+    )
+
+    serializer = DisputeSerializer(dispute, many=False)
     response_data = {"status": status.HTTP_200_OK,
                      "status_description": "OK",
                      "errors": {

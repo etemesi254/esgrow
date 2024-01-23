@@ -3,7 +3,7 @@ import datetime
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
-from esgrow_backend.models import User, EscrowTransactions, ComplianceDocuments
+from esgrow_backend.models import User, EscrowTransactions, ComplianceDocuments, Disputes
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -86,6 +86,14 @@ class EscrowViewTransactionSerializer(serializers.ModelSerializer):
                   "from_user_confirmed", "from_user_confirmed_date", "to_user_confirmed", "to_user_confirmed_date")
         read_only_fields = ("transaction_id", "stage", "created_date", "modified_date")
 
+
+class DisputeSerializer(serializers.ModelSerializer):
+    user_initiated = UserSerializer(many=False, read_only=True)
+    transaction = EscrowViewTransactionSerializer(many=False, read_only=True)
+
+    class Meta:
+        model = Disputes
+        fields = ("dispute_id", "transaction", "user_initiated", "created_date", "modified_date")
 
 # class ComplianceTransactionSerializer(serializers.ModelSerializer):
 #     party_a = UserSerializer(many=False, read_only=True)
