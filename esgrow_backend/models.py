@@ -78,6 +78,22 @@ class ComplianceDocuments(models.Model):
     file = models.FileField()
 
 
+class DisputeStage(models.TextChoices):
+    Disputed = "Disputed", "Disputed"
+    Resolved = "Resolved", "Resolved"
+    Pending = "Pending", "Pending"
+
+
+class Disputes(models.Model):
+    dispute_id = models.UUIDField(primary_key=True, default=uuid.uuid4)
+
+    transaction_id = models.ForeignKey(EscrowTransactions, on_delete=models.RESTRICT,
+                                       related_name="foreign_transaction_id")
+    user_initiated = models.ForeignKey(User, on_delete=models.RESTRICT, related_name="+")
+    reason = models.CharField(max_length=300)
+    stage = models.CharField(choices=DisputeStage.choices, max_length=200)
+
+
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_auth_token(sender, instance=None, created=False, **kwargs):
     """
