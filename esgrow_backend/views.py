@@ -17,7 +17,7 @@ from rest_framework.views import APIView
 
 from esgrow_backend.app_serializers import EscrowTransactionSerializer, EscrowViewTransactionSerializer, \
     LoggedInUserSerializer, UserSerializer
-from esgrow_backend.models import User, EscrowTransactions
+from esgrow_backend.models import User, EscrowTransactions, TransactionStage
 
 
 class CreateUserView(CreateAPIView):
@@ -128,6 +128,11 @@ class EscrowTransactionAddView(CreateAPIView):
 
         try:
             serializer.is_valid(raise_exception=True)
+            if serializer.data['from_user'] != request.user.id or serializer.data['to_user'] != request.user.id:
+                response_data = {"status": status.HTTP_400_BAD_REQUEST, "status_description": "Bad request",
+                                 "errors": [{"user_id": "Logged in user is not part of the transaction"}],
+                                 "data": {}}
+                return Response(status=status.HTTP_400_BAD_REQUEST, data=response_data)
             self.perform_create(serializer)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -141,7 +146,7 @@ class EscrowTransactionAddView(CreateAPIView):
 @api_view(['POST'])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
-def update_transaction(request, transaction_id: uuid.UUID):
+def confirm_transaction(request, transaction_id: uuid.UUID):
     transaction = EscrowTransactions.objects.get(transaction_id=transaction_id)
     if transaction is None:
         response_data = {"status": status.HTTP_404_NOT_FOUND,
@@ -168,13 +173,77 @@ def update_transaction(request, transaction_id: uuid.UUID):
         transaction.to_user_confirmed_date = datetime.datetime.now()
         transaction.save()
     else:
-        raise Exception("User is not of any type for this transaction")
+        response_data = {"status": status.HTTP_400_BAD_REQUEST,
+                         "status_description": "BAD REQUEST",
+                         "errors": {
+                             "user_id": ["Logged In user is not part of the transaction"]
+                         },
+                         "data": {}}
+        return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
+    serializer = EscrowViewTransactionSerializer(transaction, many=False)
+
+    response_data = {"status": status.HTTP_200_OK,
+                     "status_description": "OK",
+                     "errors": [],
+                     "data": serializer.data}
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def dispute_transaction(request, transaction_id: uuid.UUID):
+    transaction = EscrowTransactions.objects.get(transaction_id=transaction_id)
+    if transaction is None:
+        response_data = {"status": status.HTTP_404_NOT_FOUND,
+                         "status_description": "NOT FOUND",
+                         "errors": {
+                             "transaction_id": ["Transaction wasn't found"]
+                         },
+                         "data": {}}
+        return Response(response_data, status=status.HTTP_404_NOT_FOUND)
+
+    if transaction.stage == TransactionStage.Completed:
+        response_data = {"status": status.HTTP_406_NOT_ACCEPTABLE,
+                         "status_description": "NOT ACCEPTABLE",
+                         "errors": {
+                             "transaction_id": ["Cannot refute transaction that was previously completed"]
+                         },
+                         "data": {}}
+        return Response(response_data, status=status.HTTP_404_NOT_FOUND)
+    user: User = request.user
+
+    if user is None:
+        raise ValidationError("User not found")
+    if not request.user.is_authenticated:
+        raise ValidationError("User is not authenticated")
+
+    if user == transaction.from_user:
+        transaction.from_user_confirmed = False
+        transaction.from_user_confirmed_date = None
+        transaction.stage = TransactionStage.Cancelled
+        transaction.save()
+    elif user == transaction.to_user:
+        transaction.to_user_confirmed = False
+        transaction.to_user_confirmed_date = None
+        transaction.stage = TransactionStage.Cancelled
+        transaction.save()
+    else:
+        response_data = {"status": status.HTTP_400_BAD_REQUEST,
+                         "status_description": "BAD REQUEST",
+                         "errors": {
+                             "user_id": ["Logged In user is not part of the transaction"]
+                         },
+                         "data": {}}
+        return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+    serializer = EscrowViewTransactionSerializer(transaction, many=False)
     response_data = {"status": status.HTTP_200_OK,
                      "status_description": "OK",
                      "errors": {
                      },
-                     "data": {}}
+                     "data": serializer.data}
     return Response(response_data, status=status.HTTP_200_OK)
 
 
