@@ -276,8 +276,6 @@ def create_compliance_document():
 
 
 @api_view(['GET'])
-@authentication_classes([TokenAuthentication])
-@permission_classes([IsAuthenticated])
 def search_users(request):
     name = request.GET.get("name", default="")
     if name != "":
