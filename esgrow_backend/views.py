@@ -143,7 +143,7 @@ class EscrowTransactionAddView(CreateAPIView):
             return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(['POST'])
+@api_view(['POST', 'GET'])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def confirm_transaction(request, transaction_id: uuid.UUID):
@@ -190,7 +190,7 @@ def confirm_transaction(request, transaction_id: uuid.UUID):
     return Response(response_data, status=status.HTTP_200_OK)
 
 
-@api_view(['POST'])
+@api_view(['POST', 'GET'])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def dispute_transaction(request, transaction_id: uuid.UUID):
