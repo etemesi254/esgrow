@@ -68,6 +68,11 @@ class ComplianceDocuments(models.Model):
     party_a = models.ForeignKey(User, on_delete=models.RESTRICT, related_name='+')
     party_b = models.ForeignKey(User, on_delete=models.RESTRICT, related_name="+")
 
+    approved_by_party_a = models.BooleanField(default=False)
+    party_a_date_approved = models.DateTimeField(default=None, null=True)
+    approved_by_party_b = models.BooleanField(default=False)
+    party_b_date_approved_date = models.DateTimeField(default=None, null=True)
+
     created_date = models.DateTimeField(auto_now_add=True)
     # the contract agreement files
     file = models.FileField()

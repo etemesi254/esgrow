@@ -1,5 +1,6 @@
 import uuid
 import datetime
+from django.db.models import Q
 
 from django.contrib.auth.decorators import login_required
 from rest_framework import permissions, status
@@ -15,7 +16,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from esgrow_backend.app_serializers import EscrowTransactionSerializer, EscrowViewTransactionSerializer, \
-    LoggedInUserSerializer
+    LoggedInUserSerializer, UserSerializer
 from esgrow_backend.models import User, EscrowTransactions
 
 
@@ -66,10 +67,8 @@ class LoginUserView(ObtainAuthToken):
         serializer = self.serializer_class(data=request.data,
                                            context={'request': request})
         try:
-            print("Hello")
 
             serializer.is_valid(raise_exception=True)
-            print("Hello")
             user: User = serializer.validated_data['user']
             token, created = Token.objects.get_or_create(user=user)
             response_data = {"status": status.HTTP_200_OK,
@@ -177,3 +176,24 @@ def update_transaction(request, transaction_id: uuid.UUID):
                      },
                      "data": {}}
     return Response(response_data, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def create_compliance_document():
+    pass
+
+
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def search_users(request):
+    name = request.GET.get("name", default="")
+    if name != "":
+        users = User.objects.filter(Q(first_name__contains=name) | Q(last_name__contains=name))
+        serializer = UserSerializer(users, many=True)
+        return Response(
+            {"status": status.HTTP_200_OK, "data": serializer.data, "status_description": "OK", "errors": []})
+    else:
+        return Response({"status": status.HTTP_200_OK, "data": [], "status_description": "OK"})
