@@ -191,7 +191,8 @@ def create_compliance_document():
 def search_users(request):
     name = request.GET.get("name", default="")
     if name != "":
-        users = User.objects.filter(Q(first_name__contains=name) | Q(last_name__contains=name))
+        users = User.objects.filter(
+            Q(first_name__contains=name) | Q(last_name__contains=name) | Q(username__contains=name))
         serializer = UserSerializer(users, many=True)
         return Response(
             {"status": status.HTTP_200_OK, "data": serializer.data, "status_description": "OK", "errors": []})
