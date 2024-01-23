@@ -93,7 +93,7 @@ class DisputeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Disputes
-        fields = ("dispute_id","reason", "transaction", "user_initiated", "created_date", "modified_date")
+        fields = ("dispute_id", "reason", "transaction", "user_initiated", "created_date", "modified_date")
 
 # class ComplianceTransactionSerializer(serializers.ModelSerializer):
 #     party_a = UserSerializer(many=False, read_only=True)

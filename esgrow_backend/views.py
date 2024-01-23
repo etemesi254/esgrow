@@ -1,3 +1,4 @@
+import json
 import uuid
 import datetime
 from django.db.models import Q
@@ -194,64 +195,77 @@ def confirm_transaction(request, transaction_id: uuid.UUID):
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def dispute_transaction(request, transaction_id: uuid.UUID):
-    transaction = EscrowTransactions.objects.get(transaction_id=transaction_id)
-    if transaction is None:
-        response_data = {"status": status.HTTP_404_NOT_FOUND,
-                         "status_description": "NOT FOUND",
-                         "errors": {
-                             "transaction_id": ["Transaction wasn't found"]
-                         },
-                         "data": {}}
-        return Response(response_data, status=status.HTTP_404_NOT_FOUND)
+    try:
+        transaction = EscrowTransactions.objects.get(transaction_id=transaction_id)
+        if transaction is None:
+            response_data = {"status": status.HTTP_404_NOT_FOUND,
+                             "status_description": "NOT FOUND",
+                             "errors": {
+                                 "transaction_id": ["Transaction wasn't found"]
+                             },
+                             "data": {}}
+            return Response(response_data, status=status.HTTP_404_NOT_FOUND)
 
-    if transaction.stage == TransactionStage.Completed:
-        response_data = {"status": status.HTTP_406_NOT_ACCEPTABLE,
-                         "status_description": "NOT ACCEPTABLE",
-                         "errors": {
-                             "transaction_id": ["Cannot refute transaction that was previously completed"]
-                         },
-                         "data": {}}
-        return Response(response_data, status=status.HTTP_404_NOT_FOUND)
-    user: User = request.user
+        if transaction.stage == TransactionStage.Completed:
+            response_data = {"status": status.HTTP_406_NOT_ACCEPTABLE,
+                             "status_description": "NOT ACCEPTABLE",
+                             "errors": {
+                                 "transaction_id": ["Cannot refute transaction that was previously completed"]
+                             },
+                             "data": {}}
+            return Response(response_data, status=status.HTTP_404_NOT_FOUND)
+        user: User = request.user
 
-    if user is None:
-        raise ValidationError("User not found")
-    if not request.user.is_authenticated:
-        raise ValidationError("User is not authenticated")
+        if user is None:
+            raise ValidationError("User not found")
+        if not request.user.is_authenticated:
+            raise ValidationError("User is not authenticated")
 
-    if user == transaction.from_user:
-        transaction.from_user_confirmed = False
-        transaction.from_user_confirmed_date = None
-        transaction.stage = TransactionStage.Cancelled
-        transaction.save()
-    elif user == transaction.to_user:
-        transaction.to_user_confirmed = False
-        transaction.to_user_confirmed_date = None
-        transaction.stage = TransactionStage.Cancelled
-        transaction.save()
-    else:
-        response_data = {"status": status.HTTP_400_BAD_REQUEST,
-                         "status_description": "BAD REQUEST",
+        if user == transaction.from_user:
+            transaction.from_user_confirmed = False
+            transaction.from_user_confirmed_date = None
+            transaction.stage = TransactionStage.Cancelled
+            transaction.save()
+        elif user == transaction.to_user:
+            transaction.to_user_confirmed = False
+            transaction.to_user_confirmed_date = None
+            transaction.stage = TransactionStage.Cancelled
+            transaction.save()
+        else:
+            response_data = {"status": status.HTTP_400_BAD_REQUEST,
+                             "status_description": "BAD REQUEST",
+                             "errors": {
+                                 "user_id": ["Logged In user is not part of the transaction"]
+                             },
+                             "data": {}}
+            return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+        json_data = json.loads(request.body)
+        dispute = Disputes.objects.create(
+            user_initiated=user,
+            transaction=transaction,
+            reason=json_data.get("reason", ""),
+            stage=DisputeStage.Pending
+        )
+
+        serializer = DisputeSerializer(dispute, many=False)
+        response_data = {"status": status.HTTP_200_OK,
+                         "status_description": "OK",
                          "errors": {
-                             "user_id": ["Logged In user is not part of the transaction"]
                          },
+                         "data": serializer.data}
+        return Response(response_data, status=status.HTTP_200_OK)
+    except ValidationError as e:
+        response_data = {"status": status.HTTP_400_BAD_REQUEST, "status_description": "Bad request",
+                         "errors": e.detail,
                          "data": {}}
         return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
-    dispute = Disputes.objects.create(
-        user_initiated=user,
-        transaction=transaction,
-        reason=request.POST.get("reason", ""),
-        stage=DisputeStage.Pending
-    )
-
-    serializer = DisputeSerializer(dispute, many=False)
-    response_data = {"status": status.HTTP_200_OK,
-                     "status_description": "OK",
-                     "errors": {
-                     },
-                     "data": serializer.data}
-    return Response(response_data, status=status.HTTP_200_OK)
+    except Exception as e:
+        response_data = {"status": status.HTTP_400_BAD_REQUEST, "status_description": "Bad request",
+                         "errors": {"exception": [f"${e}"]},
+                         "data": {}}
+        return Response(response_data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['POST'])
